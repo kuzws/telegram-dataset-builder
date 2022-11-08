@@ -1,0 +1,44 @@
+version: '3.8'
+
+x-backend: &backend
+  build:
+    dockerfile: ./.dockerDev/Dockerfile
+    context: .
+    target: development
+    args:
+      RUBY_VERSION: $RUBY_VERSION
+      PG_MAJOR: $PG_MAJOR
+      BUNDLER_VERSION: '2.2.22'
+  stdin_open: true
+  tty: true
+  depends_on:
+    - postgres
+  volumes:
+    - ~/.ssh:/root/.ssh
+    - .:/app:cached
+    - telegram_dataset_builder-bundle:/usr/local/bundle
+
+services:
+  web:
+    <<: *backend
+    container_name: app_telegram_dataset_builder
+    env_file:
+      - .env
+    ports:
+      - "${DOCKER_PORT}:3000"
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    stdin_open: true
+    tty: true
+
+  postgres:
+    container_name: db_telegram_dataset_builder
+    image: postgres:${PG_MAJOR}
+    environment:
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST
+    volumes:
+      - ${DATA_SAVE_PATH}:/var/lib/postgresql/data
+
+volumes:
+  postgres:
+  telegram_dataset_builder-bundle:
